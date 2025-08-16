@@ -16,23 +16,6 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ onNavigate, isLoggedIn }) => {
   
-  const testBackendConnection = async () => {
-    try{
-      const response = await apiService.testConnection();
-      console.log('Backend response: ', response.data);
-      
-    }
-    catch(error){
-      console.error('Backend connection failed: ', 'error')
-    }
-  }
-
-  useEffect(() => {
-    testBackendConnection();
-  }, []);
-
-
-
   if (!isLoggedIn) {
     return (
       <View style={styles.container}>

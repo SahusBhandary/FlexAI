@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { act, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -9,6 +9,7 @@ import {
   Dimensions 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import api, { apiService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -33,11 +34,25 @@ const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
         { value: '6-7', label: '6-7 days a week' }
     ];
 
-    const handleAuth = () => {
+    const createUser = async () => {
+        console.log("Working");
+        
+        try{
+            const response = await apiService.createUser(name, heightFeet, heightInches,
+                weight, activityLevel, email, password
+            );
+        }
+        catch(error){
+            console.error("Error posting user: ", error)
+        }
+    }
+
+    const handleAuth = async() => {
         // Basic validation
         if (!email || !password || (!isLoginMode && (!name || !heightFeet || !heightInches || !weight || !activityLevel))) {
             return;
         }
+        createUser();
         
         // Call the login callback
         onLogin?.();

@@ -37,6 +37,16 @@ api.interceptors.response.use(
 
 export const apiService = {
     testConnection: () => api.get('/test/'),
+    createUser: (name, heightFeet, heightInches, weight, activityLevel, email, password) => 
+    api.post('/create_user/', {
+        name,
+        height_feet: heightFeet,
+        height_inches: heightInches,
+        weight,
+        activity_level: activityLevel,
+        email,
+        password
+    }),
 }
 
 export default api;
