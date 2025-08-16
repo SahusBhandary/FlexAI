@@ -10,11 +10,15 @@ import Workouts from "@/pages/workouts";
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState('home');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <Home />;
+        return <Home 
+          onNavigate={setActiveTab}
+          isLoggedIn={isLoggedIn}
+        />;
       case 'workouts':
         return <Workouts />;
       case 'diet':
@@ -24,9 +28,15 @@ export default function Index() {
       case 'charts':
         return <Charts />;
       case 'profile':
-        return <Profile />;
+        return <Profile 
+          isLoggedIn={isLoggedIn}
+          onLogin={() => setIsLoggedIn(true)}
+        />;
       default:
-        return <Home />;
+        return <Home 
+          onNavigate={setActiveTab}
+          isLoggedIn={isLoggedIn}
+        />;
     }
   };
 
