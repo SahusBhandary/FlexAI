@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -61,34 +61,34 @@ const Chatbot = () => {
         return "For sustainable weight loss:\n\n• Create a moderate calorie deficit (300-500 calories/day)\n• Focus on whole foods: vegetables, lean proteins, whole grains\n• Stay hydrated (aim for 8-10 glasses water/day)\n• Don't skip meals - eat regularly\n• Allow 1-2 lbs loss per week maximum\n\nCrash diets don't work long-term!";
       }
       if (message.includes('meal plan') || message.includes('what to eat')) {
-        return "Balanced meal template:\n\n🍽️ Each meal should include:\n• 1 palm-sized protein source\n• 1-2 cupped handfuls of vegetables\n• 1 cupped handful of carbs\n• 1 thumb-sized portion of healthy fats\n\nAdjust portions based on your goals and hunger levels!";
+        return "Balanced meal template:\n\nEach meal should include:\n• 1 palm-sized protein source\n• 1-2 cupped handfuls of vegetables\n• 1 cupped handful of carbs\n• 1 thumb-sized portion of healthy fats\n\nAdjust portions based on your goals and hunger levels!";
       }
       return "I'm here to help with nutrition! Are you interested in:\n\n• Weight loss strategies\n• Muscle building nutrition\n• Meal planning\n• Specific nutrient information\n• Healthy recipe ideas\n\nLet me know what you'd like to learn about!";
     }
     
     // Supplement responses
     if (message.includes('supplement') || message.includes('protein powder') || message.includes('creatine')) {
-      return "Basic supplement recommendations:\n\n✅ Evidence-based:\n• Protein powder (if not meeting needs through food)\n• Creatine monohydrate (3-5g daily)\n• Vitamin D (if deficient)\n• Omega-3 (if low fish intake)\n\n❌ Usually unnecessary:\n• Fat burners\n• BCAAs (if eating enough protein)\n• Most pre-workouts\n\nFocus on whole foods first!";
+      return "Basic supplement recommendations:\n\nEvidence-based:\n• Protein powder (if not meeting needs through food)\n• Creatine monohydrate (3-5g daily)\n• Vitamin D (if deficient)\n• Omega-3 (if low fish intake)\n\nUsually unnecessary:\n• Fat burners\n• BCAAs (if eating enough protein)\n• Most pre-workouts\n\nFocus on whole foods first!";
     }
     
     // Recovery and sleep
     if (message.includes('recovery') || message.includes('sleep') || message.includes('rest')) {
-      return "Recovery is crucial for progress:\n\n💤 Sleep (7-9 hours):\n• Go to bed/wake up at consistent times\n• Cool, dark room\n• No screens 1 hour before bed\n\n🔄 Active recovery:\n• Light walking\n• Gentle stretching\n• Yoga\n\n🛁 Other recovery methods:\n• Adequate hydration\n• Stress management\n• Proper nutrition timing";
+      return "Recovery is crucial for progress:\n\nSleep (7-9 hours):\n• Go to bed/wake up at consistent times\n• Cool, dark room\n• No screens 1 hour before bed\n\nActive recovery:\n• Light walking\n• Gentle stretching\n• Yoga\n\nOther recovery methods:\n• Adequate hydration\n• Stress management\n• Proper nutrition timing";
     }
     
     // Motivation and mindset
     if (message.includes('motivation') || message.includes('consistency') || message.includes('habit')) {
-      return "Building lasting habits:\n\n🎯 Start small:\n• 10-15 minute workouts initially\n• Add one healthy meal per day\n• Focus on consistency over perfection\n\n📅 Systems over goals:\n• Schedule workouts like appointments\n• Prep meals in advance\n• Track progress (photos, measurements, how you feel)\n\n💪 Remember: Progress isn't always linear. Trust the process!";
+      return "Building lasting habits:\n\nStart small:\n• 10-15 minute workouts initially\n• Add one healthy meal per day\n• Focus on consistency over perfection\n\nSystems over goals:\n• Schedule workouts like appointments\n• Prep meals in advance\n• Track progress (photos, measurements, how you feel)\n\nRemember: Progress isn't always linear. Trust the process!";
     }
     
     // Injury prevention
     if (message.includes('injury') || message.includes('pain') || message.includes('hurt')) {
-      return "⚠️ Important: For acute pain or injuries, consult a healthcare professional.\n\nInjury prevention tips:\n• Always warm up before workouts\n• Focus on proper form over heavy weights\n• Progress gradually (10% rule)\n• Include mobility work\n• Listen to your body\n• Get adequate rest\n\nIf something hurts, don't push through it!";
+      return "IMPORTANT: For acute pain or injuries, consult a healthcare professional.\n\nInjury prevention tips:\n• Always warm up before workouts\n• Focus on proper form over heavy weights\n• Progress gradually (10% rule)\n• Include mobility work\n• Listen to your body\n• Get adequate rest\n\nIf something hurts, don't push through it!";
     }
     
     // General fitness questions
     if (message.includes('how often') || message.includes('frequency')) {
-      return "General frequency guidelines:\n\n🏋️ Strength training: 2-4x per week\n🏃 Cardio: 3-5x per week\n🧘 Flexibility/mobility: Daily\n😴 Rest days: At least 1-2 per week\n\nAdjust based on your fitness level, goals, and recovery capacity. Quality over quantity!";
+      return "General frequency guidelines:\n\nStrength training: 2-4x per week\nCardio: 3-5x per week\nFlexibility/mobility: Daily\nRest days: At least 1-2 per week\n\nAdjust based on your fitness level, goals, and recovery capacity. Quality over quantity!";
     }
     
     // Default responses
@@ -133,11 +133,11 @@ const Chatbot = () => {
 
   // Quick action buttons
   const quickActions = [
-    { text: "Beginner workout plan", icon: "💪" },
-    { text: "Healthy meal ideas", icon: "🥗" },
-    { text: "Weight loss tips", icon: "⚖️" },
-    { text: "Protein requirements", icon: "🥚" },
-    { text: "Motivation advice", icon: "🔥" },
+    { text: "Beginner workout plan", icon: "fitness-center" },
+    { text: "Healthy meal ideas", icon: "restaurant" },
+    { text: "Weight loss tips", icon: "trending-down" },
+    { text: "Protein requirements", icon: "egg" },
+    { text: "Motivation advice", icon: "psychology" },
   ];
 
   // Scroll to bottom when new message arrives
@@ -158,15 +158,10 @@ const Chatbot = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {/* Header */}
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>AI Fitness Coach</Text>
         <Text style={styles.headerSubtitle}>Your personal diet & workout expert</Text>
-      </LinearGradient>
+      </View>
 
       {/* Quick Actions */}
       <ScrollView 
@@ -181,7 +176,7 @@ const Chatbot = () => {
             style={styles.quickAction}
             onPress={() => setInputText(action.text)}
           >
-            <Text style={styles.quickActionIcon}>{action.icon}</Text>
+            <MaterialIcons name={action.icon as any} size={16} color="#333" />
             <Text style={styles.quickActionText}>{action.text}</Text>
           </TouchableOpacity>
         ))}
@@ -251,7 +246,7 @@ const Chatbot = () => {
           onPress={sendMessage}
           disabled={!inputText.trim()}
         >
-          <Text style={styles.sendButtonText}>Send</Text>
+          <Ionicons name="send" size={18} color="white" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -261,55 +256,58 @@ const Chatbot = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#000000',
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
+    fontSize: 16,
+    color: '#666666',
     marginTop: 4,
   },
   quickActionsContainer: {
     maxHeight: 80,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E5EA',
+    borderBottomColor: '#E0E0E0',
   },
   quickActionsContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   quickAction: {
-    backgroundColor: '#F0F8FF',
-    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
     marginRight: 12,
     flexDirection: 'row',
     alignItems: 'center',
     minWidth: 120,
-  },
-  quickActionIcon: {
-    fontSize: 16,
-    marginRight: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   quickActionText: {
     fontSize: 12,
-    color: '#1976D2',
+    color: '#333333',
     fontWeight: '600',
+    marginLeft: 6,
   },
   messagesContainer: {
     flex: 1,
+    backgroundColor: '#F8F8F8',
   },
   messagesContent: {
     paddingHorizontal: 16,
@@ -331,42 +329,39 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   userBubble: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#000000',
     borderBottomRightRadius: 4,
   },
   aiBubble: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderBottomLeftRadius: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
   },
   userMessageText: {
-    color: 'white',
+    color: '#FFFFFF',
   },
   aiMessageText: {
-    color: '#2C3E50',
+    color: '#000000',
   },
   messageTime: {
     fontSize: 11,
     marginTop: 4,
   },
   userMessageTime: {
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'right',
   },
   aiMessageTime: {
-    color: '#95A5A6',
+    color: '#666666',
   },
   typingText: {
     fontSize: 16,
-    color: '#95A5A6',
+    color: '#666666',
     fontStyle: 'italic',
   },
   inputContainer: {
@@ -374,9 +369,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E5E5EA',
+    borderTopColor: '#E0E0E0',
     paddingBottom: 100, // Account for navbar
   },
   textInput: {
@@ -389,20 +384,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     maxHeight: 100,
     marginRight: 12,
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
   },
   sendButton: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#000000',
     borderRadius: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 44,
+    height: 44,
   },
   sendButtonDisabled: {
-    backgroundColor: '#BDC3C7',
-  },
-  sendButtonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 16,
+    backgroundColor: '#CCCCCC',
   },
 });
 

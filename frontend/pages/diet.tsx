@@ -12,7 +12,7 @@ import {
   Alert,
   Image
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
@@ -267,11 +267,11 @@ const Diet = () => {
   // Get meal icon
   const getMealIcon = (mealType: string) => {
     switch (mealType) {
-      case 'breakfast': return '🌅';
-      case 'lunch': return '☀️';
-      case 'dinner': return '🌙';
-      case 'snack': return '🍎';
-      default: return '🍽️';
+      case 'breakfast': return 'sunny';
+      case 'lunch': return 'restaurant';
+      case 'dinner': return 'moon';
+      case 'snack': return 'nutrition';
+      default: return 'restaurant';
     }
   };
 
@@ -303,7 +303,7 @@ const Diet = () => {
       <View key={meal.id} style={styles.mealCard}>
         <View style={styles.mealHeader}>
           <View style={styles.mealTitleContainer}>
-            <Text style={styles.mealIcon}>{getMealIcon(meal.type)}</Text>
+            <Ionicons name={getMealIcon(meal.type) as any} size={20} color="#666" />
             <Text style={styles.mealTitle}>{meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}</Text>
           </View>
           {isToday && (
@@ -311,7 +311,8 @@ const Diet = () => {
               style={styles.addFoodButton}
               onPress={() => openAddFoodModal(meal.type)}
             >
-              <Text style={styles.addFoodButtonText}>+ Add</Text>
+              <Ionicons name="add-circle-outline" size={16} color="#333" />
+              <Text style={styles.addFoodButtonText}>Add</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -345,28 +346,18 @@ const Diet = () => {
 
       {/* Quick Add Button */}
       <TouchableOpacity style={styles.quickAddButton} onPress={() => openAddFoodModal()}>
-        <LinearGradient
-          colors={['#4ECDC4', '#44A08D']}
-          style={styles.quickAddGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.quickAddIcon}>🥗</Text>
+        <View style={styles.quickAddContent}>
+          <MaterialIcons name="restaurant" size={24} color="white" />
           <Text style={styles.quickAddText}>Quick Add Food</Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {/* Camera Button */}
       <TouchableOpacity style={styles.cameraButton} onPress={() => setShowCameraOptions(true)}>
-        <LinearGradient
-          colors={['#FF6B6B', '#FF8E8E']}
-          style={styles.cameraGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.cameraIcon}>📸</Text>
+        <View style={styles.cameraContent}>
+          <Ionicons name="camera" size={24} color="white" />
           <Text style={styles.cameraText}>Take Food Photo</Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
 
       {/* Today's Summary */}
@@ -428,7 +419,18 @@ const Diet = () => {
       <Modal visible={showAddFoodModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Food to {selectedMealType}</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add Food to {selectedMealType}</Text>
+              <TouchableOpacity
+                style={styles.closeModalIconButton}
+                onPress={() => {
+                  setShowAddFoodModal(false);
+                  setSelectedImage(null);
+                }}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
             
             {/* Image Preview */}
             {selectedImage && (
@@ -438,7 +440,8 @@ const Diet = () => {
                   style={styles.removeImageButton} 
                   onPress={removeImage}
                 >
-                  <Text style={styles.removeImageText}>✕ Remove</Text>
+                  <Ionicons name="close-circle" size={16} color="white" />
+                  <Text style={styles.removeImageText}>Remove</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -448,6 +451,7 @@ const Diet = () => {
               placeholder="Food name"
               value={newFood.name}
               onChangeText={(text) => setNewFood({ ...newFood, name: text })}
+              placeholderTextColor="#999"
             />
             
             <View style={styles.nutritionInputRow}>
@@ -457,6 +461,7 @@ const Diet = () => {
                 value={newFood.calories}
                 onChangeText={(text) => setNewFood({ ...newFood, calories: text })}
                 keyboardType="numeric"
+                placeholderTextColor="#999"
               />
               <TextInput
                 style={[styles.modalInput, styles.nutritionInput]}
@@ -464,6 +469,7 @@ const Diet = () => {
                 value={newFood.protein}
                 onChangeText={(text) => setNewFood({ ...newFood, protein: text })}
                 keyboardType="numeric"
+                placeholderTextColor="#999"
               />
             </View>
             
@@ -474,6 +480,7 @@ const Diet = () => {
                 value={newFood.carbs}
                 onChangeText={(text) => setNewFood({ ...newFood, carbs: text })}
                 keyboardType="numeric"
+                placeholderTextColor="#999"
               />
               <TextInput
                 style={[styles.modalInput, styles.nutritionInput]}
@@ -481,6 +488,7 @@ const Diet = () => {
                 value={newFood.fat}
                 onChangeText={(text) => setNewFood({ ...newFood, fat: text })}
                 keyboardType="numeric"
+                placeholderTextColor="#999"
               />
             </View>
             
@@ -490,6 +498,7 @@ const Diet = () => {
               value={newFood.fiber}
               onChangeText={(text) => setNewFood({ ...newFood, fiber: text })}
               keyboardType="numeric"
+              placeholderTextColor="#999"
             />
 
             <View style={styles.modalButtons}>
@@ -517,23 +526,26 @@ const Diet = () => {
       <Modal visible={showCameraOptions} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.cameraOptionsModal}>
-            <Text style={styles.cameraOptionsTitle}>Add Food Photo</Text>
+            <View style={styles.modalHeader}>
+              <Text style={styles.cameraOptionsTitle}>Add Food Photo</Text>
+              <TouchableOpacity
+                style={styles.closeModalIconButton}
+                onPress={() => setShowCameraOptions(false)}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
             
             <TouchableOpacity style={styles.cameraOption} onPress={takePhoto}>
-              <Text style={styles.cameraOptionIcon}>📷</Text>
+              <Ionicons name="camera" size={24} color="#333" />
               <Text style={styles.cameraOptionText}>Take Photo</Text>
+              <Ionicons name="chevron-forward" size={16} color="#999" />
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.cameraOption} onPress={pickFromGallery}>
-              <Text style={styles.cameraOptionIcon}>📂</Text>
+              <Ionicons name="images" size={24} color="#333" />
               <Text style={styles.cameraOptionText}>Choose from Gallery</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.cameraOptionCancel} 
-              onPress={() => setShowCameraOptions(false)}
-            >
-              <Text style={styles.cameraOptionCancelText}>Cancel</Text>
+              <Ionicons name="chevron-forward" size={16} color="#999" />
             </TouchableOpacity>
           </View>
         </View>
@@ -545,7 +557,7 @@ const Diet = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     paddingHorizontal: 20,
@@ -555,50 +567,45 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#000000',
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#7F8C8D',
+    color: '#666666',
     marginTop: 4,
   },
   quickAddButton: {
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
+    backgroundColor: '#000000',
     overflow: 'hidden',
   },
-  quickAddGradient: {
+  quickAddContent: {
     padding: 16,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  quickAddIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
   quickAddText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
+    marginLeft: 12,
   },
   summaryCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#000000',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -612,11 +619,11 @@ const styles = StyleSheet.create({
   summaryNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#4ECDC4',
+    color: '#000000',
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#7F8C8D',
+    color: '#666666',
     marginTop: 4,
   },
   content: {
@@ -629,7 +636,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#000000',
     marginBottom: 16,
   },
   dayHeader: {
@@ -640,19 +647,16 @@ const styles = StyleSheet.create({
   },
   dayTotal: {
     fontSize: 14,
-    color: '#7F8C8D',
+    color: '#666666',
     fontWeight: '600',
   },
   mealCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   mealHeader: {
     flexDirection: 'row',
@@ -664,34 +668,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  mealIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
   mealTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#000000',
+    marginLeft: 8,
   },
   addFoodButton: {
-    backgroundColor: '#4ECDC4',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   addFoodButtonText: {
-    color: 'white',
+    color: '#333333',
     fontSize: 12,
     fontWeight: '600',
+    marginLeft: 4,
   },
   foodItem: {
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#F5F5F5',
   },
   foodName: {
     fontSize: 16,
-    color: '#2C3E50',
+    color: '#000000',
     fontWeight: '600',
     marginBottom: 4,
   },
@@ -701,23 +707,25 @@ const styles = StyleSheet.create({
   },
   nutritionText: {
     fontSize: 12,
-    color: '#7F8C8D',
+    color: '#666666',
   },
   mealSummary: {
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F8F8F8',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   mealSummaryText: {
     fontSize: 14,
-    color: '#2C3E50',
+    color: '#000000',
     fontWeight: '600',
     textAlign: 'center',
   },
   emptyMealText: {
     fontSize: 14,
-    color: '#BDC3C7',
+    color: '#999999',
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 12,
@@ -738,12 +746,26 @@ const styles = StyleSheet.create({
     width: width - 40,
     maxHeight: '80%',
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2C3E50',
-    textAlign: 'center',
-    marginBottom: 20,
+    color: '#000000',
+  },
+  closeModalIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   modalInput: {
     borderWidth: 1,
@@ -752,6 +774,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
+    color: '#000000',
   },
   nutritionInputRow: {
     flexDirection: 'row',
@@ -774,13 +797,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   cancelButton: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   confirmButton: {
-    backgroundColor: '#4ECDC4',
+    backgroundColor: '#000000',
   },
   cancelButtonText: {
-    color: '#666',
+    color: '#666666',
     fontWeight: '600',
   },
   confirmButtonText: {
@@ -792,22 +817,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 20,
     borderRadius: 16,
+    backgroundColor: '#666666',
     overflow: 'hidden',
   },
-  cameraGradient: {
+  cameraContent: {
     padding: 16,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
   },
-  cameraIcon: {
-    fontSize: 20,
-    marginRight: 12,
-  },
   cameraText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: 'white',
+    marginLeft: 12,
   },
   // Food item with image styles
   foodItemContent: {
@@ -839,11 +862,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   removeImageText: {
     color: 'white',
     fontSize: 12,
     fontWeight: '600',
+    marginLeft: 4,
   },
   // Camera options modal styles
   cameraOptionsModal: {
@@ -851,45 +877,31 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     width: width - 80,
-    alignItems: 'center',
   },
   cameraOptionsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#2C3E50',
+    color: '#000000',
     marginBottom: 20,
-    textAlign: 'center',
   },
   cameraOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     width: '100%',
-  },
-  cameraOptionIcon: {
-    fontSize: 24,
-    marginRight: 16,
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   cameraOptionText: {
     fontSize: 16,
-    color: '#2C3E50',
+    color: '#000000',
     fontWeight: '600',
-  },
-  cameraOptionCancel: {
-    backgroundColor: '#E0E0E0',
-    borderRadius: 12,
-    padding: 16,
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  cameraOptionCancelText: {
-    color: '#666',
-    fontSize: 16,
-    fontWeight: '600',
+    flex: 1,
+    marginLeft: 16,
   },
 });
 

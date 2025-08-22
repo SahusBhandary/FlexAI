@@ -6,9 +6,10 @@ import {
   TextInput, 
   TouchableOpacity,
   ScrollView,
-  Dimensions 
+  Dimensions,
+  Alert
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import api, { apiService } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -21,6 +22,7 @@ interface ProfileProps {
 const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [isLoginMode, setIsLoginMode] = useState(true);
     const [name, setName] = useState('');
     const [heightFeet, setHeightFeet] = useState('');
@@ -35,24 +37,71 @@ const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
     ];
 
     const createUser = async () => {
-        console.log("Working");
+        console.log("Creating user...");
         
         try{
             const response = await apiService.createUser(name, heightFeet, heightInches,
                 weight, activityLevel, email, password
             );
+            console.log("User created successfully:", response.data);
         }
         catch(error){
             console.error("Error posting user: ", error)
         }
     }
 
+    const validatePasswords = () => {
+        if (!isLoginMode && password !== confirmPassword) {
+            Alert.alert(
+                'Password Mismatch',
+                'Passwords do not match. Please make sure both password fields are identical.',
+                [{ text: 'OK' }]
+            );
+            return false;
+        }
+        return true;
+    };
+
+    const validatePasswordStrength = (password: string) => {
+        if (password.length < 6) {
+            Alert.alert(
+                'Weak Password',
+                'Password must be at least 6 characters long.',
+                [{ text: 'OK' }]
+            );
+            return false;
+        }
+        return true;
+    };
+
     const handleAuth = async() => {
         // Basic validation
-        if (!email || !password || (!isLoginMode && (!name || !heightFeet || !heightInches || !weight || !activityLevel))) {
+        if (!email || !password) {
+            Alert.alert('Missing Information', 'Please enter both email and password.');
             return;
         }
-        createUser();
+
+        if (!isLoginMode) {
+            // Additional validation for signup
+            if (!name || !heightFeet || !heightInches || !weight || !activityLevel) {
+                Alert.alert('Missing Information', 'Please fill in all required fields.');
+                return;
+            }
+
+            // Validate password strength
+            if (!validatePasswordStrength(password)) {
+                return;
+            }
+
+            // Validate password confirmation
+            if (!validatePasswords()) {
+                return;
+            }
+        }
+
+        if (!isLoginMode) {
+            await createUser();
+        }
         
         // Call the login callback
         onLogin?.();
@@ -73,6 +122,17 @@ const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
             </Text>
         </TouchableOpacity>
     );
+
+    // Password strength indicator
+    const getPasswordStrength = (password: string) => {
+        if (password.length === 0) return { strength: 0, text: '', color: '#E0E0E0' };
+        if (password.length < 6) return { strength: 1, text: 'Weak', color: '#FF6B6B' };
+        if (password.length < 10) return { strength: 2, text: 'Fair', color: '#FFB84D' };
+        return { strength: 3, text: 'Strong', color: '#51CF66' };
+    };
+
+    const passwordStrength = getPasswordStrength(password);
+    const passwordsMatch = password === confirmPassword;
 
     if (!isLoggedIn) {
         return (
@@ -175,20 +235,65 @@ const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
                             onChangeText={setPassword}
                             secureTextEntry
                         />
+                        {/* Password Strength Indicator */}
+                        {!isLoginMode && password.length > 0 && (
+                            <View style={styles.passwordStrengthContainer}>
+                                <View style={styles.passwordStrengthBar}>
+                                    <View 
+                                        style={[
+                                            styles.passwordStrengthFill,
+                                            { 
+                                                width: `${(passwordStrength.strength / 3) * 100}%`,
+                                                backgroundColor: passwordStrength.color
+                                            }
+                                        ]} 
+                                    />
+                                </View>
+                                <Text style={[styles.passwordStrengthText, { color: passwordStrength.color }]}>
+                                    {passwordStrength.text}
+                                </Text>
+                            </View>
+                        )}
                     </View>
+
+                    {/* Confirm Password Field - Only show in signup mode */}
+                    {!isLoginMode && (
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.inputLabel}>Confirm Password</Text>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    confirmPassword.length > 0 && !passwordsMatch && styles.inputError
+                                ]}
+                                placeholder="Confirm your password"
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                                secureTextEntry
+                            />
+                            {/* Password Match Indicator */}
+                            {confirmPassword.length > 0 && (
+                                <View style={styles.passwordMatchContainer}>
+                                    <Ionicons 
+                                        name={passwordsMatch ? "checkmark-circle" : "close-circle"} 
+                                        size={16} 
+                                        color={passwordsMatch ? "#51CF66" : "#FF6B6B"} 
+                                    />
+                                    <Text style={[
+                                        styles.passwordMatchText,
+                                        { color: passwordsMatch ? "#51CF66" : "#FF6B6B" }
+                                    ]}>
+                                        {passwordsMatch ? "Passwords match" : "Passwords don't match"}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
 
                     {/* Auth Button */}
                     <TouchableOpacity style={styles.authButton} onPress={handleAuth}>
-                        <LinearGradient
-                            colors={['#667eea', '#764ba2']}
-                            style={styles.authGradient}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                        >
-                            <Text style={styles.authButtonText}>
-                                {isLoginMode ? 'Sign In' : 'Create Account'}
-                            </Text>
-                        </LinearGradient>
+                        <Text style={styles.authButtonText}>
+                            {isLoginMode ? 'Sign In' : 'Create Account'}
+                        </Text>
                     </TouchableOpacity>
 
                     {/* Switch Mode */}
@@ -209,19 +314,19 @@ const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
                             <Text style={styles.featuresTitle}>What you'll get:</Text>
                             <View style={styles.featuresList}>
                                 <View style={styles.featureItem}>
-                                    <Text style={styles.featureIcon}>💪</Text>
+                                    <MaterialIcons name="fitness-center" size={20} color="#333" />
                                     <Text style={styles.featureText}>Personalized workout tracking</Text>
                                 </View>
                                 <View style={styles.featureItem}>
-                                    <Text style={styles.featureIcon}>🥗</Text>
+                                    <MaterialIcons name="restaurant" size={20} color="#333" />
                                     <Text style={styles.featureText}>Smart nutrition logging</Text>
                                 </View>
                                 <View style={styles.featureItem}>
-                                    <Text style={styles.featureIcon}>🤖</Text>
+                                    <MaterialIcons name="psychology" size={20} color="#333" />
                                     <Text style={styles.featureText}>AI-powered fitness coaching</Text>
                                 </View>
                                 <View style={styles.featureItem}>
-                                    <Text style={styles.featureIcon}>📊</Text>
+                                    <MaterialIcons name="analytics" size={20} color="#333" />
                                     <Text style={styles.featureText}>Detailed progress analytics</Text>
                                 </View>
                             </View>
@@ -252,7 +357,7 @@ const Profile: React.FC<ProfileProps> = ({ isLoggedIn = false, onLogin }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F9FA',
+        backgroundColor: '#FFFFFF',
     },
     scrollContent: {
         flexGrow: 1,
@@ -267,13 +372,13 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#2C3E50',
+        color: '#000000',
         textAlign: 'center',
         marginBottom: 12,
     },
     headerSubtitle: {
         fontSize: 16,
-        color: '#7F8C8D',
+        color: '#666666',
         textAlign: 'center',
         lineHeight: 24,
     },
@@ -288,34 +393,61 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#2C3E50',
+        color: '#000000',
         marginBottom: 8,
     },
     input: {
-        backgroundColor: 'white',
+        backgroundColor: '#FFFFFF',
         borderWidth: 1,
         borderColor: '#E0E0E0',
         borderRadius: 12,
         padding: 16,
         fontSize: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        color: '#000000',
+    },
+    inputError: {
+        borderColor: '#FF6B6B',
+        borderWidth: 2,
+    },
+    // Password validation styles
+    passwordStrengthContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    passwordStrengthBar: {
+        flex: 1,
+        height: 4,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 2,
+        marginRight: 12,
+    },
+    passwordStrengthFill: {
+        height: '100%',
+        borderRadius: 2,
+    },
+    passwordStrengthText: {
+        fontSize: 12,
+        fontWeight: '600',
+        minWidth: 50,
+    },
+    passwordMatchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    passwordMatchText: {
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 6,
     },
     // Radio button styles
     radioContainer: {
-        backgroundColor: 'white',
+        backgroundColor: '#FFFFFF',
         borderWidth: 1,
         borderColor: '#E0E0E0',
         borderRadius: 12,
         padding: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     radioOption: {
         flexDirection: 'row',
@@ -333,38 +465,36 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     radioCircleSelected: {
-        borderColor: '#667eea',
+        borderColor: '#000000',
     },
     radioDot: {
         width: 10,
         height: 10,
         borderRadius: 5,
-        backgroundColor: '#667eea',
+        backgroundColor: '#000000',
     },
     radioLabel: {
         fontSize: 16,
-        color: '#2C3E50',
+        color: '#000000',
         flex: 1,
     },
     radioLabelSelected: {
-        color: '#667eea',
+        color: '#000000',
         fontWeight: '600',
     },
     authButton: {
-        borderRadius: 16,
-        overflow: 'hidden',
-        marginTop: 20,
-        marginBottom: 20,
-    },
-    authGradient: {
+        backgroundColor: '#000000',
+        borderRadius: 12,
         paddingVertical: 18,
         paddingHorizontal: 32,
         alignItems: 'center',
+        marginTop: 20,
+        marginBottom: 20,
     },
     authButtonText: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: 'white',
+        color: '#FFFFFF',
     },
     switchContainer: {
         flexDirection: 'row',
@@ -374,27 +504,24 @@ const styles = StyleSheet.create({
     },
     switchText: {
         fontSize: 14,
-        color: '#7F8C8D',
+        color: '#666666',
     },
     switchLink: {
         fontSize: 14,
-        color: '#667eea',
+        color: '#000000',
         fontWeight: '600',
     },
     featuresPreview: {
-        backgroundColor: 'white',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
     },
     featuresTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#2C3E50',
+        color: '#000000',
         marginBottom: 16,
         textAlign: 'center',
     },
@@ -405,14 +532,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    featureIcon: {
-        fontSize: 20,
-        marginRight: 12,
-    },
     featureText: {
         fontSize: 14,
-        color: '#2C3E50',
+        color: '#333333',
         fontWeight: '500',
+        marginLeft: 12,
     },
     // Logged in profile styles
     profileContainer: {
@@ -423,33 +547,30 @@ const styles = StyleSheet.create({
     profileTitle: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#2C3E50',
+        color: '#000000',
         marginBottom: 8,
     },
     profileSubtitle: {
         fontSize: 16,
-        color: '#7F8C8D',
+        color: '#666666',
         marginBottom: 30,
     },
     profileCard: {
-        backgroundColor: 'white',
+        backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 3,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
     },
     cardTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#2C3E50',
+        color: '#000000',
         marginBottom: 4,
     },
     cardSubtitle: {
         fontSize: 14,
-        color: '#7F8C8D',
+        color: '#666666',
     },
 });
 
