@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
+import { BasePageProps } from '../types/user';
 
 const { width } = Dimensions.get('window');
 
@@ -21,7 +22,7 @@ interface Message {
   timestamp: Date;
 }
 
-const Chatbot = () => {
+const Chatbot: React.FC<BasePageProps> = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',

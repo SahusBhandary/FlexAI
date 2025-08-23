@@ -13,8 +13,23 @@ import {
   SafeAreaView
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
+import { BasePageProps } from '@/types/user';
 
 const { width } = Dimensions.get('window');
+
+interface UserProfile {
+  height_feet: number;
+  height_inches: number;
+  weight: number;
+  activity_level: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  profile?: UserProfile;
+}
 
 interface Exercise {
   id: string;
@@ -41,7 +56,7 @@ interface Workout {
   notes?: string;
 }
 
-const Workouts = () => {
+const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
   const [showNameModal, setShowNameModal] = useState(false);

@@ -9,9 +9,25 @@ import { useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { apiService } from '../services/api';
 
+// Define the types directly in this file
+interface UserProfile {
+  height_feet: number;
+  height_inches: number;
+  weight: number;
+  activity_level: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  profile?: UserProfile;
+}
+
 interface HomeProps {
   onNavigate?: (page: string) => void;
-  isLoggedIn?: boolean;
+  isLoggedIn: boolean;        
+  userData: User | null;     
 }
 
 const Home: React.FC<HomeProps> = ({ onNavigate, isLoggedIn }) => {

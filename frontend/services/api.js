@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -10,43 +11,95 @@ const api = axios.create({
   },
 });
 
-// Interceptor for Req
+// Request interceptor to add auth token
 api.interceptors.request.use(
-    (config) => {
-        console.log('Making request to:', config.url);
-        console.log('Request data:', config.data);
-        return config;
-    },
-    (error) => {
-        console.error('Request error:', error);
-        return Promise.reject(error);
+  async (config) => {
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Error getting token for request:', error);
     }
+    
+    console.log('Making request to:', config.url);
+    console.log('Request data:', config.data);
+    return config;
+  },
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
 );
 
-// Interceptor for Response
+// Response interceptor to handle token refresh
 api.interceptors.response.use(
-    (response) => {
-        console.log('Response received:', response.data);
-        return response;
-    },
-    (error) => {
-        console.error('Response error:', error.response?.data || error.message);
-        return Promise.reject(error);
+  (response) => {
+    console.log('Response received:', response.data);
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = await AsyncStorage.getItem('refresh_token');
+        if (refreshToken) {
+          const response = await axios.post(`${BASE_URL}/refresh/`, {
+            refresh: refreshToken
+          });
+          
+          if (response.data.status === 'success') {
+            const { access, refresh } = response.data.tokens;
+            await AsyncStorage.setItem('access_token', access);
+            await AsyncStorage.setItem('refresh_token', refresh);
+            
+            // Retry original request with new token
+            originalRequest.headers.Authorization = `Bearer ${access}`;
+            return api(originalRequest);
+          }
+        }
+      } catch (refreshError) {
+        // Refresh failed, clear tokens and redirect to login
+        await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user_data']);
+        console.error('Token refresh failed:', refreshError);
+      }
     }
+    
+    console.error('Response error:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
 );
 
 export const apiService = {
-    testConnection: () => api.get('/test/'),
-    createUser: (name, heightFeet, heightInches, weight, activityLevel, email, password) => 
+  testConnection: () => api.get('/test/'),
+  
+  createUser: (name, heightFeet, heightInches, weight, activityLevel, email, password) => 
     api.post('/create_user/', {
-        name,
-        height_feet: heightFeet,
-        height_inches: heightInches,
-        weight,
-        activity_level: activityLevel,
-        email,
-        password
+      name,
+      height_feet: heightFeet,
+      height_inches: heightInches,
+      weight,
+      activity_level: activityLevel,
+      email,
+      password
     }),
-}
+  
+  loginUser: (email, password) => 
+    api.post('/login/', {
+      email,
+      password
+    }),
+  
+  getCurrentUser: () => api.get('/me/'),
+  
+  refreshToken: (refreshToken) =>
+    api.post('/refresh/', {
+      refresh: refreshToken
+    })
+};
 
 export default api;

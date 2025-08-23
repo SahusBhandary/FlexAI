@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { BasePageProps } from '@/types/user';
 
 const { width } = Dimensions.get('window');
 
@@ -39,7 +40,7 @@ interface DayLog {
   meals: Meal[];
 }
 
-const Diet = () => {
+const Diet: React.FC<BasePageProps> = () => {
   const [dayLogs, setDayLogs] = useState<DayLog[]>([
     {
       date: '2025-08-11',
