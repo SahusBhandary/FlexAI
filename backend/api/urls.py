@@ -6,4 +6,5 @@ urlpatterns = [
     path('create_user/', views.create_user, name='create_user'),
     path('login/', views.login_user, name='login_user'),
     path('refresh/', views.refresh_token, name='refresh_token'),
+    path('chat/', views.open_ai_chat, name='chat_ai'),
 ]

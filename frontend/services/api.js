@@ -99,7 +99,12 @@ export const apiService = {
   refreshToken: (refreshToken) =>
     api.post('/refresh/', {
       refresh: refreshToken
-    })
+    }),
+  
+  chatWithAI: (message) => 
+  api.post('/chat/', {
+    message
+  }),
 };
 
 export default api;

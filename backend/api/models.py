@@ -25,3 +25,32 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return f"{self.user.first_name}'s Profile"
+
+class Exercise(models.Model):
+    
+
+# class Workout(models.Model):
+#     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='workouts')
+#     name = models.CharField(max_length=200)
+#     start_time = models.DateTimeField()
+#     end_time = models.DateTimeField(null=True, blank=True)
+#     notes = models.TextField(blank=True, null=True)
+#     is_active = models.BooleanField(default=False)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     class Meta:
+#         ordering = ['-start_time']
+
+#     def __str__(self):
+#         return f"{self.user.first_name}'s {self.name} - {self.start_time.strftime('%Y-%m-%d')}"
+
+#     @property
+#     def duration(self):
+#         """Calculate workout duration in minutes"""
+#         if self.end_time:
+#             return int((self.end_time - self.start_time).total_seconds() / 60)
+#         return None
+    
+#     @property
+#     def total_exercises(self):

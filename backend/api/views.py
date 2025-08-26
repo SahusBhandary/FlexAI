@@ -9,10 +9,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import UserProfile
+from django.conf import settings
 import json
 import logging
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
+
+client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 # Create your views here.
 def test(request):
@@ -273,3 +277,105 @@ def refresh_token(request):
             "status": "error",
             "message": "Invalid refresh token"
         }, status=400)
+
+"""
+    - Call to Open AI API for the chat bot feature
+    - Uses the user's personal data to tailor a response for their height, weight, etc.
+    - Fetches the user and the user's message 
+"""
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def open_ai_chat(request):
+    """Chat with OpenAI for fitness and nutrition advice"""
+    try:
+        data = json.loads(request.body) if hasattr(request, 'body') else request.data
+        user_message = data.get('message', '').strip()
+        
+        if not user_message:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Message is required'
+            }, status=400)
+        
+        # Get user context for personalized responses
+        user = request.user
+        context = ""
+        try:
+            profile = user.profile
+            context = f"""
+            User profile:
+            - Name: {user.first_name}
+            - Height: {profile.height_feet}'{profile.height_inches}"
+            - Weight: {profile.weight} lbs
+            - Activity Level: {profile.activity_level}
+            """
+        except UserProfile.DoesNotExist:
+            context = f"User name: {user.first_name}"
+
+        # Create system prompt for fitness coach
+        system_prompt = f"""You are an expert AI fitness and nutrition coach. Provide helpful, accurate, and personalized advice about:
+        - Workout routines and exercise form
+        - Nutrition and meal planning
+        - Weight management
+        - Health and wellness tips
+        - Motivation and goal setting
+
+        Keep responses conversational, encouraging, and practical. Always prioritize safety and suggest consulting healthcare professionals when appropriate.
+
+        {context}
+        """
+
+        # Make OpenAI API call using new syntax
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=500,
+            temperature=0.7
+        )
+        
+        ai_response = response.choices[0].message.content.strip()
+        
+        return JsonResponse({
+            'status': 'success',
+            'response': ai_response,
+            'usage': {
+                'prompt_tokens': response.usage.prompt_tokens,
+                'completion_tokens': response.usage.completion_tokens,
+                'total_tokens': response.usage.total_tokens
+            }
+        })
+        
+    except Exception as e:
+        # Handle OpenAI-specific errors with new v1.0+ syntax
+        error_message = str(e)
+        
+        if 'rate_limit_exceeded' in error_message.lower() or '429' in error_message:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'API rate limit exceeded. Please try again later.'
+            }, status=429)
+        
+        elif 'invalid_request_error' in error_message.lower() or '400' in error_message:
+            logger.error(f"OpenAI invalid request: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid request to AI service.'
+            }, status=400)
+        
+        elif 'authentication_error' in error_message.lower() or '401' in error_message:
+            logger.error("OpenAI authentication error")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'AI service authentication failed.'
+            }, status=500)
+        
+        else:
+            logger.error(f"Chat AI error: {str(e)}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Failed to get AI response.'
+            }, status=500)
