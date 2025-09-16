@@ -8,7 +8,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import UserProfile
+from django.utils import timezone
+from .models import UserProfile, Workout, Exercise, Set
 from django.conf import settings
 import json
 import logging
@@ -379,3 +380,231 @@ def open_ai_chat(request):
                 'status': 'error',
                 'message': 'Failed to get AI response.'
             }, status=500)
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_workout(request):
+    if request.method == 'POST':
+        try: 
+            # Checks if data is a JSON
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+            else:
+                data = request.data
+            
+            name = data.get('name')
+            notes = data.get('notes')
+            exercise_data = data.get('exercises', [])
+            is_draft=data.get('is_draft', False)
+
+            if not name:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Workout Name is Required"
+                }, status=400)
+
+            with transaction.atomic():
+                workout = Workout.objects.create(
+                    user=request.user,
+                    name=name,
+                    start_time=timezone.now(),
+                    notes=notes,
+                    is_active=not is_draft,
+                    is_draft=is_draft
+                )
+
+                for exercise in exercise_data:
+                    exercise_name = exercise.get('name')
+                    pinned_note = exercise.get('pinnedNote', '')
+                    sets_data = exercise.get('sets', [])
+
+                    if not exercise_name:
+                        continue
+
+                    new_exercise = Exercise.objects.create(
+                        workout=workout,
+                        name=exercise_name,
+                        pinned_note=pinned_note,
+                        order=exercise.get('order', 0)
+                    )
+                
+                    for set in sets_data:
+                        Set.objects.create(
+                            exercise=new_exercise,
+                            reps = set.get('reps'),
+                            weight = set.get('weight'),
+                            is_completed=set.get('isCompleted', False),
+                            previous_weight=set.get('previousWeight'),
+                            previous_reps=set.get('previousReps'),
+                            order=set.get('order', 0)
+                        )
+                # Return success response
+                return JsonResponse({
+                    "status": "success",
+                    "message": "Workout saved successfully",
+                    "workout_id": workout.id,
+                    "is_draft": is_draft
+                })
+        except Exception as e:
+            logger.error(f"Error creating workout: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "message": f"Failed to create workout: {str(e)}"
+            }, status=500)
+
+# ****MAKE PUT REQUEST**** For auto save feature
+# Look into Supabase
+@csrf_exempt
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_workout(request, workout_id):
+    try:
+        workout = Workout.objects.get(id=workout_id, user=request.user)
+
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+        else:
+            data = request.data
+        
+        exercises_data = data.get('exercies', [])
+
+        with transaction.atomic():
+            # Clear existing workout data
+            workout.exercises.all().delete()
+
+            # Update with new workout data
+            for exercise_data in exercises_data:
+                exercise = Exercise.objects.create(
+                    workout=workout,
+                    name=exercise_data.get('name'),
+                    pinned_note=exercise_data.get('pinnedNote', ''),
+                    order=exercise_data.get('order', 0)
+                )
+
+                sets_data = exercise_data.get('sets', [])
+                for set_data in sets_data:
+                    Set.objects.create(
+                        exercise=exercise,
+                        reps=set_data.get('reps', 0),
+                        weight=set_data.get('weight', 0),
+                        is_completed=set_data.get('isCompleted', False),
+                        previous_weight=set_data.get('previousWeight'),
+                        previous_reps=set_data.get('previousReps'),
+                        order=set_data.get('order', 0)
+                    )
+            
+            # Update workout metadata
+            workout.notes = data.get('notes', workout.notes)
+            workout.save()
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Progress saved",
+            "last_saved": timezone.now().isoformat()
+        })
+    except Workout.DoesNotExist:
+        return JsonResponse({
+            "status": "error",
+            "message": "Workout not found"
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error updating workout: {str(e)}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Failed to save progress"
+        }, status=500)
+    
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def complete_workout(request, workout_id):
+    """Mark workout as completed"""
+    try:
+        print("working")
+        workout = Workout.objects.get(id=workout_id, user=request.user)
+        
+        workout.is_active = False
+        workout.is_draft = False
+        workout.end_time = timezone.now()
+        workout.save()
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Workout completed",
+            "duration": workout.duration
+        })
+
+    except Workout.DoesNotExist:
+        return JsonResponse({
+            "status": "error",
+            "message": "Workout not found"
+        }, status=404)
+    
+# Return the last 10 workouts
+@csrf_exempt
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_workouts(request):
+    try:
+        workouts = Workout.objects.filter(user=request.user).order_by("-start_time")
+        
+        workouts_data = []
+        for workout in workouts:
+            # Get exercises for each workout
+            exercises_data = []
+            exercises = Exercise.objects.filter(workout=workout).order_by('order')
+            
+            for exercise in exercises:
+                # Get sets for each exercise
+                sets_data = []
+                sets = Set.objects.filter(exercise=exercise).order_by('order')
+                
+                for set_obj in sets:
+                    sets_data.append({
+                        'id': set_obj.id,
+                        'reps': set_obj.reps,
+                        'weight': float(set_obj.weight) if set_obj.weight else 0,
+                        'is_completed': set_obj.is_completed,
+                        'previous_weight': float(set_obj.previous_weight) if set_obj.previous_weight else None,
+                        'previous_reps': set_obj.previous_reps,
+                        'order': set_obj.order
+                    })
+                
+                exercises_data.append({
+                    'id': exercise.id,
+                    'name': exercise.name,
+                    'pinned_note': exercise.pinned_note,
+                    'order': exercise.order,
+                    'sets': sets_data
+                })
+
+            workouts_data.append({
+                'id': workout.id,
+                'name': workout.name,
+                'start_time': workout.start_time.isoformat() if workout.start_time else None,
+                'end_time': workout.end_time.isoformat() if workout.end_time else None,
+                'duration': workout.duration if hasattr(workout, 'duration') else None,
+                'notes': workout.notes,
+                'is_active': workout.is_active,
+                'is_draft': workout.is_draft,
+                'exercises': exercises_data
+            })
+        
+        return JsonResponse({
+            "status": "success",
+            "count": len(workouts_data),
+            "workouts": workouts_data
+        })
+    
+    except Exception as e:
+        logger.error(f"Error fetching workout data: {str(e)}")
+        return JsonResponse({
+            "status": "error",
+            "message": "Workouts not found"
+        }, status=404)
+
+
+                
+
+

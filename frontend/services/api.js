@@ -77,6 +77,7 @@ api.interceptors.response.use(
 export const apiService = {
   testConnection: () => api.get('/test/'),
   
+  // API Calls for User Auth
   createUser: (name, heightFeet, heightInches, weight, activityLevel, email, password) => 
     api.post('/create_user/', {
       name,
@@ -100,11 +101,24 @@ export const apiService = {
     api.post('/refresh/', {
       refresh: refreshToken
     }),
-  
+
+  // API Calls for Chat Bot
   chatWithAI: (message) => 
   api.post('/chat/', {
     message
   }),
+
+  // API Calls for Workouts
+  createWorkout: (workoutData) =>
+    api.post('/create-workout/', workoutData),
+  
+  updateWorkoutProgress: (workoutId, progressData) =>
+    api.put(`/update-workout-progress/${workoutId}/`, progressData),
+  
+  completeWorkout: (workoutId) =>
+    api.post(`/complete-workout/${workoutId}/`),
+
+  getWorkouts: () => api.get('/get-workouts/')
 };
 
 export default api;

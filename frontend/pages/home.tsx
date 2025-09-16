@@ -33,8 +33,6 @@ interface HomeProps {
 }
 
 const Home: React.FC<HomeProps> = ({ onNavigate, isLoggedIn, userData }) => {
-  console.log(userData);
-  
   // Get time-based greeting
   const getGreeting = () => {
     const hour = new Date().getHours();

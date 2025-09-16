@@ -10,10 +10,13 @@ import {
   FlatList,
   Alert,
   Dimensions,
-  SafeAreaView
+  SafeAreaView,
+  AppState
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import { BasePageProps } from '@/types/user';
+import AuthService from '@/services/auth';
+import { apiService } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -56,12 +59,108 @@ interface Workout {
   notes?: string;
 }
 
+interface BackendWorkout {
+  id: number;
+  name: string;
+  start_time: string;
+  end_time: string | null;
+  duration: number | null;
+  notes: string;
+  is_active: boolean;
+  is_draft: boolean;
+  exercises: any[];
+}
+
 const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<Workout | null>(null);
+  const [workoutId, setWorkoutId] = useState<string | null>(null); 
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [showNameModal, setShowNameModal] = useState(false);
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [workoutName, setWorkoutName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [displayedWorkouts, setDisplayedWorkouts] = useState<BackendWorkout[]>([]);
+  const [workoutData, setWorkoutData] = useState<BackendWorkout[]>([]);
+
+  useEffect(() => {
+    const get_past_workouts = async () => {
+      try{
+        const response = await apiService.getWorkouts();
+        const allWorkouts: BackendWorkout[] = response.data.workouts;
+        setWorkoutData(allWorkouts);
+
+        // Collect Last 10 Workouts
+        const oldWorkouts: BackendWorkout[] = [];
+        let i = 0;
+        while (i < allWorkouts.length && oldWorkouts.length <= 10){
+          oldWorkouts.push(allWorkouts[i]);
+          i++;
+        }
+        setDisplayedWorkouts(oldWorkouts);
+        
+      }
+      catch (error){
+        console.error("Error fetching workout data:", error)
+      }
+      finally{
+        setIsLoading(false);
+      }
+    }
+    get_past_workouts();
+    
+  }, [])
+
+  useEffect(() => {
+    console.log("Displayed Workouts: ", displayedWorkouts)
+  }, [displayedWorkouts])
+
+  // Auto-save every 30 seconds when there's an active workout
+  useEffect(() => {
+    if (!activeWorkout || !workoutId) return;
+
+    const autoSaveInterval = setInterval(() => {
+      saveWorkoutProgress();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(autoSaveInterval);
+  }, [activeWorkout, workoutId]);
+
+  // Save workout progress to backend
+  const saveWorkoutProgress = async () => {
+    if (!activeWorkout || !workoutId || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      const workoutData = {
+        exercises: activeWorkout.exercises.map(exercise => ({
+          name: exercise.name,
+          pinnedNote: exercise.pinnedNote,
+          order: activeWorkout.exercises.indexOf(exercise),
+          sets: exercise.sets.map(set => ({
+            reps: set.reps,
+            weight: set.weight,
+            isCompleted: set.isCompleted,
+            previousWeight: set.previousWeight,
+            previousReps: set.previousReps,
+            order: exercise.sets.indexOf(set)
+          }))
+        })),
+        notes: activeWorkout.notes
+      };
+
+      const response = await apiService.updateWorkoutProgress(workoutId, workoutData);
+
+      if (response.data.status) {
+        setLastSaved(new Date());
+      }
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Common exercises list
   const commonExercises = [
@@ -85,8 +184,8 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
     setShowNameModal(true);
   };
 
-  // Confirm workout creation
-  const confirmNewWorkout = () => {
+  // Modified confirm new workout to create draft
+  const confirmNewWorkout = async () => {
     const newWorkout: Workout = {
       id: Date.now().toString(),
       name: workoutName || `${getTimeOfDay()} Routine`,
@@ -95,10 +194,64 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
       isActive: true,
       notes: 'Example routine for testing'
     };
-    setActiveWorkout(newWorkout);
+
+    // Create draft workout in backend
+    try {
+      const response = await apiService.createWorkout({
+        name: newWorkout.name,
+        notes: newWorkout.notes,
+        exercises: [],
+        is_draft: true
+      });
+
+      if (response.data.status === 'success') {
+        setWorkoutId(response.data.workout_id);
+        setActiveWorkout(newWorkout);
+      } else {
+        throw new Error(response.data.message || 'Failed to create workout');
+      }
+    } catch (error) {
+      console.error('Failed to create draft workout:', error);
+      
+      // Show user-friendly error message
+      Alert.alert(
+        'Connection Error',
+        'Unable to save workout to server. You can continue working out, but progress may not be saved.',
+        [{ text: 'Continue Anyway', onPress: () => {
+          // Fallback to local storage
+          setActiveWorkout(newWorkout);
+        }}]
+      );
+      return;
+    }
+
     setShowNameModal(false);
     setWorkoutName('');
   };
+
+  // Save on app state changes (when user backgrounds the app)
+  useEffect(() => {
+    if (!activeWorkout || !workoutId) return;
+
+    const handleAppStateChange = (nextAppState: string) => {
+      console.log('App State Changed to:', nextAppState);
+      
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        console.log('Saving workout progress due to app state change...');
+        saveWorkoutProgress();
+      }
+    };
+
+    // Subscribe to app state changes
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    // Cleanup function
+    return () => {
+      if (subscription) {
+        subscription.remove();
+      }
+    };
+  }, [activeWorkout, workoutId]);
 
   // Add exercise to workout
   const addExercise = (exerciseName: string) => {
@@ -181,8 +334,8 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
     });
   };
 
-  // Finish workout
-  const finishWorkout = () => {
+  // Modified finish workout to mark as completed
+  const finishWorkout = async () => {
     if (!activeWorkout) return;
     
     Alert.alert(
@@ -192,15 +345,39 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Finish',
-          onPress: () => {
+          onPress: async () => {
+            // Save final state and mark as completed
+            if (workoutId) {
+              try {
+                const response = await apiService.completeWorkout(workoutId);
+                console.log('Workout completed:', response.data);
+              } catch (error) {
+                console.error('Failed to complete workout:', error);
+              }
+            }
+
             const finishedWorkout = { ...activeWorkout, isActive: false };
             setWorkouts([finishedWorkout, ...workouts]);
             setActiveWorkout(null);
+            setWorkoutId(null);
           }
         }
       ]
     );
   };
+
+  // Show save status in UI
+  const renderSaveStatus = () => (
+    <View style={styles.saveStatusContainer}>
+      {isSaving ? (
+        <Text style={styles.savingText}>Saving...</Text>
+      ) : lastSaved ? (
+        <Text style={styles.savedText}>
+          Saved {lastSaved.toLocaleTimeString()}
+        </Text>
+      ) : null}
+    </View>
+  );
 
   // Cancel workout
   const cancelWorkout = () => {
@@ -233,6 +410,8 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
         </View>
         <Text style={styles.workoutNotes}>{activeWorkout?.notes}</Text>
       </View>
+
+      {renderSaveStatus()}
 
       <ScrollView style={styles.exercisesList}>
         {activeWorkout?.exercises.map((exercise) => (
@@ -398,21 +577,21 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
   const renderWorkoutHistory = () => (
     <View style={styles.historyContainer}>
       <Text style={styles.sectionTitle}>Recent Workouts</Text>
-      {workouts.length === 0 ? (
+      {displayedWorkouts.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialIcons name="fitness-center" size={48} color="#E0E0E0" />
           <Text style={styles.emptyStateText}>No workouts yet</Text>
           <Text style={styles.emptyStateSubtext}>Start your first workout to see it here</Text>
         </View>
       ) : (
-        workouts.map((workout) => (
+        displayedWorkouts.map((workout) => (
           <View key={workout.id} style={styles.historyCard}>
             <View style={styles.historyCardHeader}>
               <Text style={styles.historyWorkoutName}>{workout.name}</Text>
               <MaterialIcons name="fitness-center" size={20} color="#999" />
             </View>
             <Text style={styles.historyDate}>
-              {workout.startTime.toLocaleDateString()} • {workout.exercises.length} exercises
+              {new Date(workout.start_time).toLocaleTimeString()} • {workout.exercises.length} exercises
             </Text>
           </View>
         ))
@@ -932,6 +1111,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 8,
+  },
+  saveStatusContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    backgroundColor: '#F8F8F8',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  savingText: {
+    fontSize: 12,
+    color: '#666666',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  savedText: {
+    fontSize: 12,
+    color: '#28A745',
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
 
