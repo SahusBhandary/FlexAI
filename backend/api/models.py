@@ -98,4 +98,25 @@ class Set(models.Model):
     def __str__(self):
         return f"Set {self.order + 1}: {self.weight}lbs x {self.reps} - {self.exercise.name}"
 
+class Food(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='food')
+    name = models.CharField(max_length=100)
+    calories = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    carbs = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    protein = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    fiber = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    fat = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'food'
+        verbose_name = 'Foods'
+        verbose_name_plural = 'Foods'
+    
+    def __str__(self):
+        return f"{self.name}:\nCalories: {self.calories}\nCarbs: {self.carbs}\nProtein: {self.protein}\nFiber: {self.fiber}\nFat: {self.fat}"
+
+
+
+
 

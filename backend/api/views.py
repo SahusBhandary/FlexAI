@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
-from .models import UserProfile, Workout, Exercise, Set
+from .models import UserProfile, Workout, Exercise, Set, Food
 from django.conf import settings
 import json
 import logging
@@ -327,14 +327,14 @@ def open_ai_chat(request):
         {context}
         """
 
-        # Make OpenAI API call using new syntax
+        # Updated to use GPT-4 models
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",  
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=500,
+            max_tokens=800,  # Increased for more detailed responses
             temperature=0.7
         )
         
@@ -343,6 +343,7 @@ def open_ai_chat(request):
         return JsonResponse({
             'status': 'success',
             'response': ai_response,
+            'model_used': 'gpt-4o-mini',  # Track which model was used
             'usage': {
                 'prompt_tokens': response.usage.prompt_tokens,
                 'completion_tokens': response.usage.completion_tokens,
@@ -467,7 +468,7 @@ def update_workout(request, workout_id):
         else:
             data = request.data
         
-        exercises_data = data.get('exercies', [])
+        exercises_data = data.get('exercises', [])
 
         with transaction.atomic():
             # Clear existing workout data
@@ -603,6 +604,56 @@ def get_workouts(request):
             "status": "error",
             "message": "Workouts not found"
         }, status=404)
+    
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_food(request):
+    if request.method == "POST":
+        try:
+            # Checks if data is a JSON
+            if request.content_type == 'application/json':
+                data = json.loads(request.body)
+            else:
+                data = request.data
+
+            name = data.get('name')
+            calories = data.get('calories')
+            protein = data.get('protein', 0)
+            carbs = data.get('carbs', 0)
+            fat = data.get('fat', 0)
+            fiber = data.get('fiber', 0)
+
+            if not name:
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Food name is required"
+                }, status=400)
+
+            with transaction.atomic():
+                new_food = Food.objects.create(
+                    user=request.user,
+                    name=name,
+                    protein=protein, 
+                    carbs=carbs, 
+                    fat=fat, 
+                    fiber=fiber, 
+                    calories=calories
+                )
+
+            
+            return JsonResponse({
+                "status": "Success",
+                "food": new_food.id,
+                "message": "Food Saved successfully"
+            })
+
+        except Exception as e:
+            logger.error(f"Error Creating Food: {e}")
+            return JsonResponse({
+                "status": "Erorr",
+                "message": "Error creating food"
+            }, status=500)
 
 
                 

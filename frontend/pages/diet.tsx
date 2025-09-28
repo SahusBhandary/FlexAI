@@ -15,6 +15,7 @@ import {
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { BasePageProps } from '@/types/user';
+import { apiService } from '@/services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -206,11 +207,13 @@ const Diet: React.FC<BasePageProps> = () => {
   };
 
   // Add food to meal
-  const addFood = () => {
+  const addFood = async () => {
     if (!newFood.name || !newFood.calories) {
       Alert.alert('Error', 'Please enter at least food name and calories');
       return;
     }
+
+    
 
     const food: FoodItem = {
       id: Date.now().toString(),
@@ -222,6 +225,10 @@ const Diet: React.FC<BasePageProps> = () => {
       fiber: parseInt(newFood.fiber) || 0,
       imageUri: selectedImage || undefined, // Include image URI
     };
+
+    const response = await apiService.createFood(food);
+    console.log("Response: ", response.data.status);
+    
 
     const today = new Date().toISOString().split('T')[0];
     const updatedLogs = dayLogs.map(log => {

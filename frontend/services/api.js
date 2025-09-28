@@ -5,7 +5,7 @@ const BASE_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -45,6 +45,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
+      // Add a lock to prevent multiple simultaneous refresh attempts
+      if (api.isRefreshing) {
+        return new Promise((resolve) => {
+          api.refreshSubscribers.push(() => {
+            resolve(api(originalRequest));
+          });
+        });
+      }
+      
+      api.isRefreshing = true;
+      api.refreshSubscribers = api.refreshSubscribers || [];
+      
       try {
         const refreshToken = await AsyncStorage.getItem('refresh_token');
         if (refreshToken) {
@@ -57,6 +69,13 @@ api.interceptors.response.use(
             await AsyncStorage.setItem('access_token', access);
             await AsyncStorage.setItem('refresh_token', refresh);
             
+            // Update the Authorization header for future requests
+            api.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+            
+            // Retry all queued requests
+            api.refreshSubscribers.forEach(callback => callback());
+            api.refreshSubscribers = [];
+            
             // Retry original request with new token
             originalRequest.headers.Authorization = `Bearer ${access}`;
             return api(originalRequest);
@@ -66,6 +85,12 @@ api.interceptors.response.use(
         // Refresh failed, clear tokens and redirect to login
         await AsyncStorage.multiRemove(['access_token', 'refresh_token', 'user_data']);
         console.error('Token refresh failed:', refreshError);
+        
+        // Notify all queued requests that refresh failed
+        api.refreshSubscribers.forEach(callback => callback());
+        api.refreshSubscribers = [];
+      } finally {
+        api.isRefreshing = false;
       }
     }
     
@@ -73,6 +98,9 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+api.isRefreshing = false;
+api.refreshSubscribers = [];
 
 export const apiService = {
   testConnection: () => api.get('/test/'),
@@ -118,7 +146,11 @@ export const apiService = {
   completeWorkout: (workoutId) =>
     api.post(`/complete-workout/${workoutId}/`),
 
-  getWorkouts: () => api.get('/get-workouts/')
+  getWorkouts: () => api.get('/get-workouts/'),
+
+  // API Calls for Food
+  createFood: (foodData) => 
+    api.post('/create-food/', foodData),
 };
 
 export default api;

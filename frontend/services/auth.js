@@ -56,10 +56,46 @@ class AuthService {
     }
   }
 
-  // Check if user is logged in
+  isTokenValid(token) {
+    if (!token) return false;
+    
+    try {
+      // Decode JWT token (basic decode without verification)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Math.floor(Date.now() / 1000);
+      
+      // Check if token expires within the next 5 minutes
+      return payload.exp > (currentTime + 300);
+    } catch (error) {
+      console.error('Error validating token:', error);
+      return false;
+    }
+  }
+
+  // Check if user is logged in with valid token
   async isLoggedIn() {
-    const token = await this.getAccessToken();
-    return !!token;
+    try {
+      const token = await this.getAccessToken();
+      if (!token) return false;
+      
+      // Check if token is still valid
+      if (!this.isTokenValid(token)) {
+        console.log('Token expired, attempting refresh...');
+        try {
+          await this.refreshAccessToken();
+          return true;
+        } catch (error) {
+          console.log('Token refresh failed, user needs to login');
+          await this.logout();
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking login status:', error);
+      return false;
+    }
   }
 
   // Logout - clear all stored data

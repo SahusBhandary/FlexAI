@@ -96,9 +96,12 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
         let i = 0;
         while (i < allWorkouts.length && oldWorkouts.length <= 10){
           oldWorkouts.push(allWorkouts[i]);
+          console.log(allWorkouts[i].exercises);
+          
           i++;
         }
         setDisplayedWorkouts(oldWorkouts);
+        
         
       }
       catch (error){
@@ -152,7 +155,7 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
 
       const response = await apiService.updateWorkoutProgress(workoutId, workoutData);
 
-      if (response.data.status) {
+      if (response.data.status === "success") {
         setLastSaved(new Date());
       }
     } catch (error) {
@@ -584,17 +587,23 @@ const Workouts: React.FC<BasePageProps> = ({ isLoggedIn, userData }) => {
           <Text style={styles.emptyStateSubtext}>Start your first workout to see it here</Text>
         </View>
       ) : (
-        displayedWorkouts.map((workout) => (
-          <View key={workout.id} style={styles.historyCard}>
-            <View style={styles.historyCardHeader}>
-              <Text style={styles.historyWorkoutName}>{workout.name}</Text>
-              <MaterialIcons name="fitness-center" size={20} color="#999" />
+        <FlatList
+          data={displayedWorkouts}
+          keyExtractor={(item) => item.id.toString()}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.historyList}
+          renderItem={({ item: workout }) => (
+            <View style={styles.historyCard}>
+              <View style={styles.historyCardHeader}>
+                <Text style={styles.historyWorkoutName}>{workout.name}</Text>
+                <MaterialIcons name="fitness-center" size={20} color="#999" />
+              </View>
+              <Text style={styles.historyDate}>
+                {new Date(workout.start_time).toLocaleDateString()} • {workout.exercises.length} exercises
+              </Text>
             </View>
-            <Text style={styles.historyDate}>
-              {new Date(workout.start_time).toLocaleTimeString()} • {workout.exercises.length} exercises
-            </Text>
-          </View>
-        ))
+          )}
+        />
       )}
     </View>
   );
@@ -697,7 +706,7 @@ const styles = StyleSheet.create({
   },
   historyContainer: {
     paddingHorizontal: 20,
-    flex: 1,
+    flex: 1, 
   },
   sectionTitle: {
     fontSize: 20,
@@ -1130,6 +1139,9 @@ const styles = StyleSheet.create({
     color: '#28A745',
     textAlign: 'center',
     fontWeight: '500',
+  },
+  historyList: {
+    paddingBottom: 20, 
   },
 });
 
