@@ -454,8 +454,6 @@ def create_workout(request):
                 "message": f"Failed to create workout: {str(e)}"
             }, status=500)
 
-# ****MAKE PUT REQUEST**** For auto save feature
-# Look into Supabase
 @csrf_exempt
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
@@ -623,6 +621,7 @@ def create_food(request):
             carbs = data.get('carbs', 0)
             fat = data.get('fat', 0)
             fiber = data.get('fiber', 0)
+            tag = data.get('tag', 0)
 
             if not name:
                 return JsonResponse({
@@ -638,7 +637,8 @@ def create_food(request):
                     carbs=carbs, 
                     fat=fat, 
                     fiber=fiber, 
-                    calories=calories
+                    calories=calories,
+                    tag=tag,
                 )
 
             
@@ -654,6 +654,28 @@ def create_food(request):
                 "status": "Erorr",
                 "message": "Error creating food"
             }, status=500)
+
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def get_foods(request):
+    try:
+        date = request.GET.get('date')
+        foods = Food.objects.filter(user=request.user).order_by("-timestamp")
+
+        # Get an array of foods associated with that user
+        return JsonResponse({
+            "status": "success",
+            "foodArray": foods,
+            "message": "Foods retreived successfully",
+        })
+    except Exception as e:
+        logger.error(f"Error Creating Food: {e}")
+        return JsonResponse({
+            "status": "Erorr",
+            "message": "Error fetching food"
+        }, status=500)
+
 
 
                 

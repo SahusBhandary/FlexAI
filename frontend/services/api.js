@@ -151,6 +151,8 @@ export const apiService = {
   // API Calls for Food
   createFood: (foodData) => 
     api.post('/create-food/', foodData),
+
+  getFood: (params) => api.get('/get-food/', { params }),
 };
 
 export default api;

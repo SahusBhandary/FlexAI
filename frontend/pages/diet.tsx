@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ interface FoodItem {
   carbs: number;
   fat: number;
   fiber: number;
-  imageUri?: string; // Add image URI field
+  tag: string;
 }
 
 interface Meal {
@@ -42,40 +42,6 @@ interface DayLog {
 }
 
 const Diet: React.FC<BasePageProps> = () => {
-  const [dayLogs, setDayLogs] = useState<DayLog[]>([
-    {
-      date: '2025-08-11',
-      meals: [
-        {
-          id: '1',
-          type: 'breakfast',
-          foods: [
-            { id: '1', name: 'Oatmeal with Berries', calories: 320, protein: 12, carbs: 54, fat: 6, fiber: 8 },
-            { id: '2', name: 'Greek Yogurt', calories: 130, protein: 15, carbs: 9, fat: 0, fiber: 0 }
-          ]
-        },
-        {
-          id: '2',
-          type: 'lunch',
-          foods: [
-            { id: '3', name: 'Grilled Chicken Salad', calories: 450, protein: 35, carbs: 15, fat: 28, fiber: 6 }
-          ]
-        }
-      ]
-    },
-    {
-      date: '2025-08-10',
-      meals: [
-        {
-          id: '3',
-          type: 'breakfast',
-          foods: [
-            { id: '4', name: 'Protein Smoothie', calories: 280, protein: 25, carbs: 20, fat: 8, fiber: 4 }
-          ]
-        }
-      ]
-    }
-  ]);
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddFoodModal, setShowAddFoodModal] = useState(false);
@@ -90,6 +56,21 @@ const Diet: React.FC<BasePageProps> = () => {
     fat: '',
     fiber: ''
   });
+
+  useEffect(() => {
+
+    const getFoodData = async () => {
+      try{
+        let currentDate = new Date().toISOString().split('T')[0];
+        const response = await apiService.getFood({ date: currentDate });
+      }
+      catch (error){
+        console.log("Error fetching food data:", error);
+      }
+    }
+
+    getFoodData();
+  }, [])
 
   // Get current meal type based on time
   const getCurrentMealType = (): 'breakfast' | 'lunch' | 'dinner' | 'snack' => {
@@ -160,9 +141,6 @@ const Diet: React.FC<BasePageProps> = () => {
   // Get today's log or create new one
   const getTodayLog = (): DayLog => {
     const today = new Date().toISOString().split('T')[0];
-    const existingLog = dayLogs.find(log => log.date === today);
-    
-    if (existingLog) return existingLog;
     
     return {
       date: today,
@@ -213,8 +191,6 @@ const Diet: React.FC<BasePageProps> = () => {
       return;
     }
 
-    
-
     const food: FoodItem = {
       id: Date.now().toString(),
       name: newFood.name,
@@ -223,7 +199,7 @@ const Diet: React.FC<BasePageProps> = () => {
       carbs: parseInt(newFood.carbs) || 0,
       fat: parseInt(newFood.fat) || 0,
       fiber: parseInt(newFood.fiber) || 0,
-      imageUri: selectedImage || undefined, // Include image URI
+      tag: getCurrentMealType(),
     };
 
     const response = await apiService.createFood(food);
@@ -231,36 +207,7 @@ const Diet: React.FC<BasePageProps> = () => {
     
 
     const today = new Date().toISOString().split('T')[0];
-    const updatedLogs = dayLogs.map(log => {
-      if (log.date === today) {
-        return {
-          ...log,
-          meals: log.meals.map(meal => 
-            meal.type === selectedMealType
-              ? { ...meal, foods: [...meal.foods, food] }
-              : meal
-          )
-        };
-      }
-      return log;
-    });
-
-    // If today doesn't exist, create it
-    const todayExists = dayLogs.some(log => log.date === today);
-    if (!todayExists) {
-      const newDayLog: DayLog = {
-        date: today,
-        meals: [
-          { id: Date.now().toString() + '1', type: 'breakfast', foods: selectedMealType === 'breakfast' ? [food] : [] },
-          { id: Date.now().toString() + '2', type: 'lunch', foods: selectedMealType === 'lunch' ? [food] : [] },
-          { id: Date.now().toString() + '3', type: 'dinner', foods: selectedMealType === 'dinner' ? [food] : [] },
-          { id: Date.now().toString() + '4', type: 'snack', foods: selectedMealType === 'snack' ? [food] : [] }
-        ]
-      };
-      updatedLogs.unshift(newDayLog);
-    }
-
-    setDayLogs(updatedLogs);
+    
     setNewFood({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '' });
     setSelectedImage(null); // Reset image
     setShowAddFoodModal(false);
@@ -287,9 +234,6 @@ const Diet: React.FC<BasePageProps> = () => {
   const renderFoodItem = (food: FoodItem) => (
     <View key={food.id} style={styles.foodItem}>
       <View style={styles.foodItemContent}>
-        {food.imageUri && (
-          <Image source={{ uri: food.imageUri }} style={styles.foodImage} />
-        )}
         <View style={styles.foodDetails}>
           <Text style={styles.foodName}>{food.name}</Text>
           <View style={styles.foodNutrition}>
@@ -397,28 +341,6 @@ const Diet: React.FC<BasePageProps> = () => {
           <Text style={styles.sectionTitle}>Today - {new Date().toLocaleDateString()}</Text>
           {todayLog.meals.map(meal => renderMealCard(meal, true))}
         </View>
-
-        {/* Previous Days */}
-        {dayLogs.map((dayLog) => {
-          const isToday = dayLog.date === new Date().toISOString().split('T')[0];
-          if (isToday) return null;
-          
-          const dayNutrition = getDayNutrition(dayLog);
-          
-          return (
-            <View key={dayLog.date} style={styles.section}>
-              <View style={styles.dayHeader}>
-                <Text style={styles.sectionTitle}>
-                  {new Date(dayLog.date).toLocaleDateString()}
-                </Text>
-                <Text style={styles.dayTotal}>
-                  {dayNutrition.calories} cal total
-                </Text>
-              </View>
-              {dayLog.meals.filter(meal => meal.foods.length > 0).map(meal => renderMealCard(meal))}
-            </View>
-          );
-        })}
 
         <View style={styles.bottomSpacing} />
       </ScrollView>

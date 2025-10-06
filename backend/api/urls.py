@@ -12,4 +12,5 @@ urlpatterns = [
     path('complete-workout/<int:workout_id>/', views.complete_workout, name='complete_workout'),
     path('get-workouts/', views.get_workouts, name='get_workouts'),
     path('create-food/', views.create_food, name='create_food'),
+    path('get-food/', views.get_foods, name='get_food'),
 ]
